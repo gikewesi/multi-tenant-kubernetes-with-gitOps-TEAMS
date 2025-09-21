@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-alpha
+  labels:
+    name: team-alpha
+    purpose: app
+    team: team-a
