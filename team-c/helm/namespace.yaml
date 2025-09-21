@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-gamma
+  labels:
+    name: team-gamma
+    purpose: observability
+    function: monitoring
+    team: team-c
+
