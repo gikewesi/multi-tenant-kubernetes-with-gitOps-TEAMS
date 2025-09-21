@@ -1,6 +1,10 @@
 from flask import Flask, render_template_string
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
+
+# Enable Prometheus metrics endpoint at /metrics
+metrics = PrometheusMetrics(app)
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -71,7 +75,7 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="box">
-    <h1>Hello Teams!!! 🎉</h1>
+        <h1>Hello Teams!!! 🎉</h1>
         <button class="btn" onclick="greetTeam()">Click Me</button>
     </div>
 </body>

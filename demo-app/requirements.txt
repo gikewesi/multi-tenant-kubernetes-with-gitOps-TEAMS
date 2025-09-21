@@ -1,1 +1,4 @@
-flask
+Flask==3.0.3
+gunicorn==23.0.0
+prometheus-flask-exporter==0.23.0
+requests==2.31.0
