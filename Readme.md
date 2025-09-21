@@ -41,6 +41,47 @@ I built this platform to demonstrate how modern cloud-native tools can solve the
 └─────────────────┘    └─────────────────┘
 ```
 
+## ⚙️ How It Works Together
+
+1. **Terraform** spins up the cluster and infrastructure.  
+2. **Argo CD** is bootstrapped into the cluster.  
+3. Argo CD connects to your **GitHub repository**.  
+4. Each team has its own folder (e.g. `team-a/values.yaml`) where they define their app.  
+5. Argo CD applies those **Helm templates** to the correct namespace.  
+6. **Kyverno** enforces policies (e.g. no insecure configurations).  
+7. **Prometheus** and **Grafana** monitor workloads.  
+8. **Policy Reporter** shows compliance status.  
+9. **GitHub Actions** ensures checks pass before merging.  
+
+## 👥 Team Responsibilities & Demo App
+
+To make this project realistic, the cluster is divided into three teams with clear responsibilities:
+
+### **Team A – App Team**
+- Owns application namespaces  
+- Deploys workloads through **Helm** and **Argo CD**  
+- Hosts the **demo application** to showcase tenant isolation, monitoring, and policy enforcement  
+
+### **Team B – Security & Governance**
+- Runs **Kyverno policies** and **Policy Reporter UI**  
+- Ensures applications comply with **Pod Security Standards**, **NetworkPolicies**, and **image restrictions**  
+- Monitors compliance trends across all namespaces  
+
+### **Team C – Observability**
+- Operates **Prometheus** + **Grafana** in the observability namespace  
+- Provides **tenant-specific dashboards** so Team A can only see their app metrics  
+- Ensures cluster-wide health and capacity visibility  
+
+---
+
+### 🔗 How This Comes Together
+- The **demo app** in Team A’s namespace is continuously deployed by **Argo CD**.  
+- **Team B** validates compliance with security policies.  
+- **Team C** monitors performance and cluster health.  
+
+This demonstrates how multiple teams can safely share a single **EKS cluster** without interfering with each other.
+
+
 ## 🤔 Why These Technology Choices?
 
 ### **Amazon EKS - The Foundation**
@@ -191,7 +232,7 @@ terraform plan
 terraform apply
 
 # 3. Configure kubectl
-aws eks update-kubeconfig --region us-west-2 --name multi-tenant-cluster
+aws eks update-kubeconfig --region us-east-1 --name multi-tenant-cluster
 
 # 4. Install ArgoCD
 kubectl create namespace argocd

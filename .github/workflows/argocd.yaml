@@ -1,0 +1,44 @@
+name: ArgoCD Application Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "argocd/**"     # only run when ArgoCD YAMLs change
+
+env:
+  KUBE_CONTEXT: arn:aws:eks:us-east-1:<ACCOUNT_ID>:cluster/my-multi-tenant-cluster
+
+jobs:
+  deploy-argocd-apps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ---------- AWS AUTH (OIDC) ----------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/GitHubActionsRole
+          aws-region: us-east-1
+
+      # ---------- KUBECTL ----------
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Get kubeconfig from EKS
+        run: |
+          aws eks update-kubeconfig --name my-multi-tenant-cluster --region us-east-1
+
+      # ---------- APPLY ARGOCD APP MANIFESTS ----------
+      - name: Apply ArgoCD Applications
+        run: |
+          kubectl apply -f argocd/
