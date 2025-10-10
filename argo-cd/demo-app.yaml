@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: demo-app
+    app.kubernetes.io/part-of: multi-tenant-kubernetes-with-gitOps-TEAMS
+spec:
+  project: multi-tenant-kubernetes-with-gitOps-TEAMS
+  source:
+    repoURL: 'https://github.com/gikewesi/multi-tenant-kubernetes-with-gitOps-TEAMS.git'  # Replace with your repo
+    targetRevision: main  # Branch name
+    path: demo-app        # Path to the folder containing kustomization.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: demo-app
+  syncPolicy:
+    automated:
+      prune: true          # Deletes resources removed from Git
+      selfHeal: true       # Correct drift automatically
+    syncOptions:
+      - CreateNamespace=true  # Automatically create namespace if missing
+      - Validate=true         # Validate manifests before applying
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore differences in the number of replicas
+    - group: ""
+      kind: Service
+      jsonPointers:
+        - /spec/clusterIP  # Ignore differences in clusterIP    

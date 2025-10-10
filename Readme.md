@@ -445,6 +445,5 @@ If you're considering this approach for your organization, I'm happy to discuss:
 
 ---
 
-**Contact**: [ginikanwaikewei@gmail.com]  
 
 *This project represents my philosophy that enterprise Kubernetes should be secure by default, observable by design, and operable at scale.*
