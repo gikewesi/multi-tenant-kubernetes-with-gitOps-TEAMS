@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-c
+  namespace: argocd
+spec:
+  description: Observability and monitoring project for Prometheus, Grafana, and Loki.
+  sourceRepos:
+    - https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+    - server: https://kubernetes.default.svc
+      namespace: team-gamma
+  clusterResourceWhitelist:
+    - group: monitoring.coreos.com
+      kind: Prometheus
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+    - group: monitoring.coreos.com
+      kind: PrometheusRule
+    - group: networking.k8s.io
+      kind: IngressClass
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: apps
+      kind: DaemonSet
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ServiceAccount
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  roles:
+    - name: ci-bot
+      description: Automation token for observability deployments.
+      policies:
+        - p, proj:team-c:ci-bot, applications, sync, team-c/*, allow
+        - p, proj:team-c:ci-bot, applications, create, team-c/*, allow
+        - p, proj:team-c:ci-bot, applications, update, team-c/*, allow
+
+    - name: monitoring-admin
+      description: Observability engineers with full control inside this project.
+      policies:
+        - p, proj:team-c:monitoring-admin, applications, *, team-c/*, allow
+      groups:
+        - oidc:group:team-c-admins
+
+    - name: read-only
+      description: Read-only access for SREs and monitoring viewers.
+      policies:
+        - p, proj:team-c:read-only, applications, get, team-c/*, allow
+      groups:
+        - oidc:group:team-c-viewers
+  syncWindows:
+    - kind: allow
+      schedule: "0 8 * * 1-5"
+      duration: 10h
+      applications:
+        - "*"
+      namespaces:
+        - monitoring
+      manualSync: true
+  orphanedResources:
+    warn: true

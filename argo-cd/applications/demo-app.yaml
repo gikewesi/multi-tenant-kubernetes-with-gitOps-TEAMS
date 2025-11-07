@@ -9,9 +9,9 @@ metadata:
 spec:
   project: multi-tenant-kubernetes-with-gitOps-TEAMS
   source:
-    repoURL: 'https://github.com/gikewesi/multi-tenant-kubernetes-with-gitOps-TEAMS.git'  # Replace with your repo
-    targetRevision: main  # Branch name
-    path: demo-app        # Path to the folder containing kustomization.yaml
+    repoURL: 'https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git' 
+    targetRevision: main  
+    path: demo-app        
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: demo-app

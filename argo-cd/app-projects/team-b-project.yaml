@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-b
+  namespace: argocd
+spec:
+  description: Governance and compliance project for Kyverno, Policy Reporter, and security policies.
+  sourceRepos:
+    - https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: governance
+  clusterResourceWhitelist:
+    - group: kyverno.io
+      kind: ClusterPolicy
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+  namespaceResourceWhitelist:
+    - group: kyverno.io
+      kind: Policy
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: apps
+      kind: DaemonSet
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+  namespaceResourceBlacklist:
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: ""
+      kind: ServiceAccount
+  roles:
+    - name: ci-bot
+      description: Automation role for syncing and updating policy apps.
+      policies:
+        - p, proj:team-b:ci-bot, applications, sync, team-b/*, allow
+        - p, proj:team-b:ci-bot, applications, create, team-b/*, allow
+        - p, proj:team-b:ci-bot, applications, update, team-b/*, allow
+
+    - name: compliance-admin
+      description: Security and compliance admins with full control inside this project.
+      policies:
+        - p, proj:team-b:compliance-admin, applications, *, team-b/*, allow
+      groups:
+        - oidc:group:team-b-admins
+
+    - name: read-only
+      description: View-only access for auditors or security viewers.
+      policies:
+        - p, proj:team-b:read-only, applications, get, team-b/*, allow
+      groups:
+        - oidc:group:compliance-readers
+  syncWindows:
+    - kind: allow
+      schedule: "0 9 * * 1-5"
+      duration: 8h
+      applications:
+        - "*"
+      namespaces:
+        - governance
+      manualSync: true
+  orphanedResources:
+    warn: true

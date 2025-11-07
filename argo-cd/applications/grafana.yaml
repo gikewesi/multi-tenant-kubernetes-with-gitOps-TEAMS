@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: team-c
+  namespace: argocd
+  labels:
+    team: team-c
+    app: grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: team-c
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 8.5.12
+    helm:
+      releaseName: grafana
+      values: |
+        adminUser: admin
+        adminPassword: "changeme"
+        persistence:
+          enabled: true
+          size: 10Gi
+        ingress:
+          enabled: true
+          ingressClassName: nginx
+          hosts:
+            - grafana.team-c.internal
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                url: http://monitoring-kube-prometheus-prometheus.monitoring.svc:9090
+                access: proxy
+                isDefault: true
+        sidecar:
+          dashboards:
+            enabled: true
+            folder: /var/lib/grafana/dashboards
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
