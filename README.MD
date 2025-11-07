@@ -32,67 +32,30 @@ Everything else (GitOps, policies, monitoring) supports that goal.
 # Multi-Tenant Isolation Diagram
 
 ```
-                                   ┌──────────────────────────────────────────┐
-                                   │                Argo CD                   │
-                                   │         (control plane in argocd)        │
-                                   └───────────────┬──────────────────────────┘
-                                                   │
-                    AppProjects                     │                    CI/CD IdP
-          ┌───────────────────────────────┐         │        ┌───────────────────────────┐
-          │  Team A  │  Team B  │ Team C  │         │        │  OIDC groups + tokens     │
-          │  (Apps)  │ (Policy)  │ (Obs)  │         │        │  ci-bot per AppProject    │
-          └─────┬────┴────┬─────┴────┬────┘         │        └──────────────┬────────────┘
-                │         │          │              │                       │
-   sourceRepos, │         │          │              │     Argo RBAC roles   │
- destinations,  │         │          │              │  (per-project, scoped │
-  kind allow/deny         │          │              │    to each tenant)    │
-                │         │          │              │                       │
-                ▼         ▼          ▼              │
-        ┌────────────┐ ┌──────────┐ ┌───────────┐  │
-        │ Team A App │ │ Policies │ │ Observab. │  │
-        └────┬───────┘ └────┬─────┘ └────┬──────┘  │
-             │              │              │        │
-             ▼              ▼              ▼        ▼
+                               ┌────────────────────────┐
+                               │        Argo CD         │
+                               │  GitOps Controller     │
+                               └─────────────┬──────────┘
+                                             │
+                                AppProjects define
+                                deployment boundaries
+                                             │
+          ┌──────────────────────────────┬───────────────────────────────┬──────────────────────────────┐
+          │                              │                               │                              │
+   ┌──────────────┐              ┌──────────────┐               ┌──────────────┐               ┌─────────────────┐
+   │ Team A (Apps)│              │ Team B (Sec) │               │ Team C (Obs) │               │ GitHub Actions │
+   │ Namespaces   │              │ Policies     │               │ Monitoring   │               │ CI/CD Pipelines │
+   └──────┬───────┘              └──────┬──────-┘                └──────┬──────-┘               └─────────────────┘
+          │                               │                               │
+          ▼                               ▼                               ▼
+  Workloads + Helm                Kyverno + Policy                Prometheus + Grafana
+  Charts enforced by              Reporter enforce                 provide tenant-aware
+  AppProject rules                cluster security                 dashboards
 
-╔════════════════════════════════════════════════  Kubernetes Cluster  ═══════════════════════════════════════════╗
-║                                                                                                                ║
-║  Namespaces per tenant:                                                                                        ║
-║  ┌─────────────────┐   ┌──────────────────┐   ┌──────────────────┐                                            ║
-║  │  team-alpha     │   │  governance      │   │  monitoring       │                                            ║
-║  │  (Team A apps)  │   │  (Team B policy) │   │  (Team C stack)   │                                            ║
-║  └─┬───────────────┘   └─┬────────────────┘   └─┬────────────────┘                                            ║
-║    │                     │                      │                                                         PSA  ║
-║    │   RBAC (namespace)  │   RBAC (cluster+ns)  │   RBAC (ns)                                             +    ║
-║    │   Roles/Bindings    │   for policy engine  │   read across ns (metrics)                            Kyverno ║
-║    ▼                     ▼                      ▼                                                               ║
-║  Workloads A         Kyverno/Gatekeeper     Prometheus, Grafana, Loki                                          ║
-║                                                                                                                ║
-║  ───────────────────────── Network Isolation (Calico/Cilium NetworkPolicies) ─────────────────────────         ║
-║  • Default deny all cross-namespace traffic                                                                     ║
-║  • Allow only app-to-approved-services (egress)                                                                 ║
-║  • Allow Team C scrape endpoints via label-based allow list                                                     ║
-║                                                                                                                ║
-║  ───────────────────────── Resource Isolation ─────────────────────────                                         ║
-║  • LimitRanges per namespace (cpu/mem requests and limits)                                                      ║
-║  • ResourceQuota per namespace (pods, PVCs, ConfigMaps, total cpu/mem)                                          ║
-║                                                                                                                ║
-║  ───────────────────────── Pod Security ─────────────────────────                                              ║
-║  • PSA: baseline or restricted at namespace level                                                               ║
-║  • Kyverno rules: no privileged, no hostPath, runAsNonRoot, drop caps, read-only rootfs                         ║
-║                                                                                                                ║
-║  ───────────────────────── Ingress/Egress Controls ────────────────────────                                    ║
-║  • Central Ingress controller with per-ns IngressClass                                                          ║
-║  • Egress via egress-gateway or NAT per team if required                                                        ║
-║                                                                                                                ║
-║  ───────────────────────── Secret Management ─────────────────────────                                         ║
-║  • External Secrets/CSI Driver bound per namespace                                                              ║
-║  • KMS keys scoped per tenant where possible                                                                    ║
-║                                                                                                                ║
-║  ───────────────────────── Node Isolation (optional) ──────────────────────                                    ║
-║  • Dedicated node pools with taints/tolerations per team or workload class                                      ║
-║  • Separate storage classes if needed                                                                           ║
-║                                                                                                                ║
-╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+              Namespace Isolation | NetworkPolicies | Pod Security | RBAC | ResourceQuotas
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 ```
 
 The architecture is intentionally simple:
