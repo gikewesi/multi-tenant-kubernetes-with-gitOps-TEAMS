@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app-of-apps
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  source:
+    repoURL: https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git
+    targetRevision: main
+    path: argocd/applications
+    directory:
+      recurse: true
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /metadata/annotations
+        - /metadata/labels

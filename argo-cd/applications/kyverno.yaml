@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+spec:
+  project: team-b
+  source:
+    repoURL: 'https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git' 
+    targetRevision: main
+    path: kyverno
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: governance
+    syncOptions:
+      - CreateNamespace=true  # Automatically create namespace if missing
+      - Validate=true         # Validate manifests before applying
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore differences in the number of replicas
+    - group: ""
+      kind: Service
+      jsonPointers:
+        - /spec/clusterIP  # Ignore differences in clusterIP    

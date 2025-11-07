@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-alpha
+  namespace: argocd
+spec:
+  description: Project boundary for Team Alpha workloads, repos, RBAC, and allowed resources.
+  sourceRepos:
+    - https://github.com/giteoye/multi-tenant-kubernetes-with-gitOps-TEAMS.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: team-alpha
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: apps
+      kind: DaemonSet
+    - group: batch
+      kind: Job
+    - group: batch
+      kind: CronJob
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ServiceAccount
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  roles:
+    - name: ci-bot
+      description: CI pipeline token for deploying apps in this project.
+      policies:
+        - p, proj:team-alpha:ci-bot, applications, get, team-alpha/*, allow
+        - p, proj:team-alpha:ci-bot, applications, create, team-alpha/*, allow
+        - p, proj:team-alpha:ci-bot, applications, update, team-alpha/*, allow
+        - p, proj:team-alpha:ci-bot, applications, sync, team-alpha/*, allow
+      jwtTokens: []
+
+    - name: read-only
+      description: Read-only access for Team Alpha developers.
+      policies:
+        - p, proj:team-alpha:read-only, applications, get, team-alpha/*, allow
+        - p, proj:team-alpha:read-only, projects, get, team-alpha, allow
+      groups:
+        - oidc:group:team-alpha-devs
+  syncWindows:
+    - kind: allow
+      schedule: "0 8 * * 1-5"
+      duration: 9h
+      applications:
